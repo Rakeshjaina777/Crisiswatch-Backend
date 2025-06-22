@@ -3,7 +3,10 @@ import { prisma } from "../config/db.js";
 
 export class DisasterService {
   static async createDisaster(data) {
-    return await prisma.disaster.create({ data });
+    
+        const disaster = await prisma.disaster.create({ data });
+        io.emit("new-disaster", disaster); // Real-time event
+        return disaster;
   }
 
   static async getAllDisasters() {
