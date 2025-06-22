@@ -1,15 +1,85 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// prisma/schema.prisma
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  role      Role
+  createdAt DateTime @default(now())
+  reports   Report[]
+  disasters Disaster[] @relation("UserDisasters")
+
+  @@index([role])
+}
+
+model Disaster {
+  id            String    @id @default(uuid())
+  title         String
+  locationName  String
+  location      Json      // You’ll store GeoJSON or lat/lng here
+  description   String
+  tags          String[]
+  createdAt     DateTime  @default(now())
+  ownerId       String
+  owner         User      @relation("UserDisasters", fields: [ownerId], references: [id])
+  auditTrail    Json
+  reports       Report[]
+  resources     Resource[]
+
+  @@index([ownerId])
+  @@index([createdAt])
+}
+
+model Report {
+  id                String   @id @default(uuid())
+  disasterId        String
+  userId            String
+  content           String
+  imageUrl          String
+  verificationStatus VerificationStatus @default(PENDING)
+  createdAt         DateTime @default(now())
+  disaster          Disaster @relation(fields: [disasterId], references: [id])
+  user              User     @relation(fields: [userId], references: [id])
+
+  @@index([disasterId])
+  @@index([userId])
+}
+
+model Resource {
+  id            String   @id @default(uuid())
+  disasterId    String
+  name          String
+  locationName  String
+  location      Json     // GeoJSON/lat-lng
+  type          String
+  createdAt     DateTime @default(now())
+  disaster      Disaster @relation(fields: [disasterId], references: [id])
+
+  @@index([disasterId])
+  @@index([type])
+}
+
+model Cache {
+  key        String   @id
+  value      Json
+  expiresAt  DateTime
+}
+
+enum Role {
+  ADMIN
+  CONTRIBUTOR
+}
+
+enum VerificationStatus {
+  VERIFIED
+  UNVERIFIED
+  PENDING
 }
